@@ -48,102 +48,158 @@ export default function CreateBlog() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-16">
+    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', padding: '2rem' }}>
+      <div style={{ maxWidth: '4xl', margin: '0 auto' }}>
         <Link
           href="/"
-          className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-8"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            color: '#2563eb',
+            textDecoration: 'none',
+            marginBottom: '2rem'
+          }}
         >
           ← Back to Blogs
         </Link>
 
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-4xl font-bold mb-8 text-gray-800">
+        <div style={{ maxWidth: '2xl', margin: '0 auto' }}>
+          <h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '2rem', color: '#1f2937' }}>
             Create New Blog Post
           </h1>
 
           <form
             onSubmit={handleSubmit}
-            className="bg-white rounded-lg shadow-lg p-8 space-y-6"
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '0.5rem',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+              padding: '2rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.5rem'
+            }}
           >
-            {/* Title */}
             <input
               type="text"
               placeholder="Blog Title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="w-full px-4 py-3 border rounded-md"
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem'
+              }}
             />
 
-            {/* Main Content */}
             <textarea
               placeholder="Main Content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
               required
               rows={5}
-              className="w-full px-4 py-3 border rounded-md"
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem'
+              }}
             />
 
-            {/* Heading 1 */}
             <input
               type="text"
               placeholder="Heading 1"
               value={heading1}
               onChange={(e) => setHeading1(e.target.value)}
-              className="w-full px-4 py-3 border rounded-md"
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem'
+              }}
             />
 
-            {/* Description 1 */}
             <textarea
               placeholder="Description 1"
               value={description1}
               onChange={(e) => setDescription1(e.target.value)}
               rows={4}
-              className="w-full px-4 py-3 border rounded-md"
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem'
+              }}
             />
 
-            {/* Heading 2 */}
             <input
               type="text"
               placeholder="Heading 2"
               value={heading2}
               onChange={(e) => setHeading2(e.target.value)}
-              className="w-full px-4 py-3 border rounded-md"
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem'
+              }}
             />
 
-            {/* Description 2 */}
             <textarea
               placeholder="Description 2"
               value={description2}
               onChange={(e) => setDescription2(e.target.value)}
               rows={4}
-              className="w-full px-4 py-3 border rounded-md"
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem'
+              }}
             />
 
-            {/* Image 1 URL */}
             <input
               type="url"
               placeholder="Image 1 URL"
               value={image1}
               onChange={(e) => setImage1(e.target.value)}
-              className="w-full px-4 py-3 border rounded-md"
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem'
+              }}
             />
 
-            {/* Image 2 URL */}
             <input
               type="url"
               placeholder="Image 2 URL"
               value={image2}
               onChange={(e) => setImage2(e.target.value)}
-              className="w-full px-4 py-3 border rounded-md"
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem'
+              }}
             />
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-blue-600 text-white py-3 rounded-md font-semibold hover:bg-blue-700 disabled:bg-gray-400"
+              style={{
+                width: '100%',
+                backgroundColor: '#2563eb',
+                color: 'white',
+                padding: '0.75rem 1.5rem',
+                borderRadius: '0.375rem',
+                fontWeight: '600',
+                border: 'none',
+                cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                opacity: isSubmitting ? 0.5 : 1
+              }}
             >
               {isSubmitting ? "Creating..." : "Create Blog Post"}
             </button>

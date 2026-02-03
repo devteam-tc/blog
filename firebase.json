@@ -1,4 +1,3 @@
-
 {
   "hosting": {
     "public": "out",
@@ -10,8 +9,20 @@
     "cleanUrls": true,
     "rewrites": [
       {
-        "source": "**",
-        "destination": "/404.html"
+        "source": "/blogs/create-blog",
+        "destination": "/blogs/create-blog/index.html"
+      },
+      {
+        "source": "/blogs/create-blog/**",
+        "destination": "/blogs/create-blog/index.html"
+      },
+      {
+        "source": "/blog-detail",
+        "destination": "/blog-detail.html"
+      },
+      {
+        "source": "/blog-detail/**",
+        "destination": "/blog-detail.html"
       },
       {
         "source": "**",

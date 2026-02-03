@@ -8,6 +8,19 @@ import { serverTimestamp } from "firebase/firestore";
 
 export default function Home() {
   const [blogs, setBlogs] = useState([]);
+const formatDate = (createdAt) => {
+  if (!createdAt) return 'No date';
+  
+  if (typeof createdAt.toDate === 'function') {
+    return new Date(createdAt.toDate()).toLocaleDateString();
+  } else if (typeof createdAt === 'string') {
+    return new Date(createdAt).toLocaleDateString();
+  } else if (createdAt instanceof Date) {
+    return createdAt.toLocaleDateString();
+  }
+  
+  return 'Invalid date';
+};
 
   useEffect(() => {
     const fetchBlogs = async () => {
@@ -60,7 +73,7 @@ export default function Home() {
             <p style={{ fontSize: '1.25rem', marginBottom: '2rem' }}>
               Discover amazing stories and insights
             </p>
-            <Link 
+            {/* <Link 
               href="/blogs/create-blog" 
               style={{
                 backgroundColor: 'white',
@@ -72,7 +85,31 @@ export default function Home() {
               }}
             >
               Create New Blog
-            </Link>
+            </Link> */}
+            <button
+  onClick={() => window.location.href = '/blogs/create-blog/'}
+  style={{
+    backgroundColor: 'white',
+    color: '#2563eb',
+    padding: '0.75rem 1.5rem',
+    borderRadius: '0.5rem',
+    fontWeight: '600',
+    textDecoration: 'none',
+    border: '2px solid #2563eb',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease'
+  }}
+  onMouseOver={(e) => {
+    e.target.style.backgroundColor = '#2563eb';
+    e.target.style.color = 'white';
+  }}
+  onMouseOut={(e) => {
+    e.target.style.backgroundColor = 'white';
+    e.target.style.color = '#2563eb';
+  }}
+>
+  Create New Blog
+</button>
           </div>
         </div>
       </div>
@@ -102,22 +139,27 @@ export default function Home() {
               }}></div>
               <div style={{ padding: '1.5rem' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.75rem', color: '#1f2937' }}>
-                  <Link 
-                    href={`/blogs/${blog.slug}`} 
-                    style={{ color: '#1f2937', textDecoration: 'none' }}
-                  >
-                    {blog.title}
-                  </Link>
+                <Link 
+                  href={`/blog-detail?slug=${blog.slug}`} 
+                  style={{ color: '#1f2937', textDecoration: 'none' }}
+                >
+                  {blog.title}
+                </Link>
                 </h3>
                 <p style={{ color: '#6b7280', marginBottom: '1rem', fontSize: '0.875rem', lineHeight: '1.5' }}>
                   {blog.content ? blog.content.substring(0, 150) + '...' : 'No content available...'}
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                    {blog.createdAt ? new Date(blog.createdAt.toDate()).toLocaleDateString() : 'No date'}
+                   {blog.createdAt ? 
+                      (typeof blog.createdAt.toDate === 'function' 
+                        ? new Date(blog.createdAt.toDate()).toLocaleDateString()
+                        : new Date(blog.createdAt).toLocaleDateString())
+                      : 'No date'
+                    }
                   </span>
-                  <Link 
-                    href={`/blogs/${blog.slug}`} 
+                 <Link 
+                    href={`/blog-detail?slug=${blog.slug}`} 
                     style={{
                       backgroundColor: '#2563eb',
                       color: 'white',
@@ -125,6 +167,13 @@ export default function Home() {
                       borderRadius: '0.375rem',
                       textDecoration: 'none',
                       fontSize: '0.875rem'
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      console.log("Clicked blog:", blog);
+                      console.log("Blog slug:", blog.slug);
+                      console.log("Generated URL:", `/blog-detail?slug=${blog.slug}`);
+                      window.location.href = `/blog-detail?slug=${blog.slug}`;
                     }}
                   >
                     Read More

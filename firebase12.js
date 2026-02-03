@@ -6,7 +6,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyBlRXEac8sKBq86wwonvbY4pGEiFKg65aI",
   authDomain: "blogtcerp.firebaseapp.com",
   projectId: "blogtcerp",
-  storageBucket: "blogtcerp.firebasestorage.app",
+storageBucket: "blogtcerp.appspot.com",
   messagingSenderId: "539708718938",
   appId: "1:539708718938:web:ef822b1003f56a22037d63"
 };
