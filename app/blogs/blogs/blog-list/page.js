@@ -21,7 +21,7 @@ export default function BlogList() {
 
   const breadcrumbs = [
     { label: 'Home', link: '/', icon: FaHome },
-    { label: 'Blogs', link: '/blogs2' },
+    { label: 'Blogs', link: '/blogs' },
     { label: 'Blog List', link: null }
   ];
 
@@ -130,7 +130,7 @@ export default function BlogList() {
           {/* Create New Blog Button */}
           <div style={{ marginBottom: '2rem', textAlign: 'right' }}>
             <Link
-              href="/blogs2/blogs/create-blog"
+              href="/blogs/blogs/create-blog"
               style={{
                 backgroundColor: '#2563eb',
                 color: 'white',
@@ -186,7 +186,7 @@ export default function BlogList() {
                         <td style={{ padding: '1rem' }}>
                           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
                             <Link
-                              href={`/blogs2/blog-detail?slug=${blog.slug}`}
+                              href={`/blogs/blog-detail?slug=${blog.slug}`}
                               style={{
                                 backgroundColor: '#10b981',
                                 color: 'white',
@@ -200,7 +200,7 @@ export default function BlogList() {
                               Read More
                             </Link>
                             <Link
-                              href={`/blogs2/blogs/edit-blog?id=${blog.id}`}
+                              href={`/blogs/blogs/edit-blog?id=${blog.id}`}
                               style={{
                                 backgroundColor: '#f59e0b',
                                 color: 'white',

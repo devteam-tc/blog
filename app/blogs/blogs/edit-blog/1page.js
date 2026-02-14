@@ -31,7 +31,7 @@ function EditBlogContent() {
 
   const breadcrumbs = [
     { label: 'Home', link: '/', icon: FaHome },
-    { label: 'Blogs', link: '/blogs2' },
+    { label: 'Blogs', link: '/blogs' },
     { label: 'Blog List', link: '/blogs/blogs/blog-list' },
     { label: 'Edit Blog', link: null }
   ];

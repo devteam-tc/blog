@@ -9,7 +9,7 @@ import Headers from "../../../components/layout/header/Header";
 import PageHeader from "../../../components/layout/PageHeader";
 import Footer from "../../../components/layout/footer/Footer";
 import CustomCursor from "../../../components/layout/CustomCursor";
-import { FaCalendarAlt, FaUser, FaArrowRight, FaClock } from 'react-icons/fa';
+import { FaCalendarAlt, FaUser, FaArrowRight, FaClock, FaHome } from 'react-icons/fa';
 import facebook from "../../../public/assets/images/blogs/facebook.png";
 import linkedin from "../../../public/assets/images/blogs/linkedin.png"; 
 import twitter from "../../../public/assets/images/blogs/twitter.png";
@@ -21,6 +21,76 @@ function BlogDetailContent() {
   const [blog, setBlog] = useState(null);
   const [relatedBlogs, setRelatedBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [linkMap, setLinkMap] = useState({
+    'Tech Cloud ERP': 'https://techclouderp.com',
+    'ERP': 'https://techclouderp.com/erp',
+    'inventory management': 'https://techclouderp.com/inventory-management',
+    'billing software': 'https://techclouderp.com/billing-software',
+    'accounting': 'https://techclouderp.com/accounting-software'
+  });
+
+  // Function to convert specific words to links
+  const addLinksToText = (text) => {
+    if (!text) return text;
+    
+    let processedText = text;
+    
+    // Replace each word with its link
+    Object.entries(linkMap).forEach(([word, link]) => {
+      const regex = new RegExp(`\\b${word}\\b`, 'gi');
+      processedText = processedText.replace(regex, `<a href="${link}" target="_blank" style="color: #3b82f6; text-decoration: underline; font-weight: 500;">${word}</a>`);
+    });
+    
+    return processedText;
+  };
+
+  // Function to add new link dynamically
+  const addNewLink = (word, url) => {
+    setLinkMap(prev => ({
+      ...prev,
+      [word]: url
+    }));
+  };
+
+  // Function to remove link dynamically
+  const removeLink = (word) => {
+    setLinkMap(prev => {
+      const newMap = { ...prev };
+      delete newMap[word];
+      return newMap;
+    });
+  };
+
+  // Function to update existing link
+  const updateLink = (word, url) => {
+    setLinkMap(prev => ({
+      ...prev,
+      [word]: url
+    }));
+  };
+
+  // Function to apply anchor tags from blog data
+  const applyAnchorTags = (text, anchorTags) => {
+    if (!text || !anchorTags) return text;
+    
+    let processedText = text;
+    
+    // Apply each anchor tag
+    Object.entries(anchorTags).forEach(([key, tag]) => {
+      if (tag.word && tag.url) {
+        const regex = new RegExp(`\\b${tag.word}\\b`, 'gi');
+        processedText = processedText.replace(regex, `<a href="${tag.url}" target="_blank" style="color: #3b82f6; text-decoration: underline; font-weight: 500;">${tag.word}</a>`);
+      }
+    });
+    
+    return processedText;
+  };
+
+  const breadcrumbs = [
+    { label: 'Home', link: '/', icon: FaHome },
+    { label: 'Blogs', link: '/blogs' },
+    { label: 'Blog Detail', link: null }
+  ];
 
   // Format Date
   const formatDate = (createdAt) => {
@@ -44,6 +114,14 @@ function BlogDetailContent() {
     const wordCount = text.split(/\s+/).length;
     const readingTime = Math.ceil(wordCount / wordsPerMinute);
     return readingTime;
+  };
+
+  // Highlight keyword in text
+  const highlightKeyword = (text, keyword) => {
+    if (!keyword || !text) return text;
+    
+    const regex = new RegExp(`(${keyword})`, 'gi');
+    return text.replace(regex, '<span style="background-color: #ffeb3b; font-weight: 600; padding: 2px 4px; border-radius: 3px;">$1</span>');
   };
 
   useEffect(() => {
@@ -72,7 +150,7 @@ function BlogDetailContent() {
           setBlog(blogData);
           
           // Fetch related blogs (excluding current blog)
-          const allBlogsQuery = await getDocs(collection(db, "blog"));
+          const allBlogsQuery = await getDocs(collection(blogDb, "blog"));
           const allBlogs = allBlogsQuery.docs
             .map(doc => ({ id: doc.id, ...doc.data() }))
             .filter(b => b.id !== blogData.id)
@@ -92,7 +170,7 @@ function BlogDetailContent() {
             setBlog(blogData);
             
             // Fetch related blogs
-            const allBlogsQuery = await getDocs(collection(db, "blog"));
+            const allBlogsQuery = await getDocs(collection(blogDb, "blog"));
             const allBlogs = allBlogsQuery.docs
               .map(doc => ({ id: doc.id, ...doc.data() }))
               .filter(b => b.id !== blogData.id)
@@ -116,7 +194,7 @@ function BlogDetailContent() {
     return (
       <div>
         <Headers />
-        <PageHeader />
+        <PageHeader title="Blog Detail" breadcrumbs={breadcrumbs} />
  
         <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ textAlign: 'center' }}>
@@ -142,13 +220,13 @@ function BlogDetailContent() {
     return (
       <div>
         <Headers />
-        <PageHeader />
+        <PageHeader title="Blog Detail" breadcrumbs={breadcrumbs} />
         
         <div style={{ minHeight: '60vh', backgroundColor: '#f9fafb', padding: '2rem' }}>
           <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
             <h1>Blog Post Not Found</h1>
             <button 
-              onClick={() => router.push('/blogs2/')}
+              onClick={() => router.push('/blogs/')}
               style={{
                 backgroundColor: '#2563eb',
                 color: 'white',
@@ -174,7 +252,7 @@ function BlogDetailContent() {
     
     <div >
       <Headers />
-      <PageHeader />
+      <PageHeader title="Blog Detail" breadcrumbs={breadcrumbs} />
       <CustomCursor />
       <style jsx>{` 
         .hero {
@@ -182,7 +260,6 @@ function BlogDetailContent() {
             -webkit-border-radius: 1.5rem;
             -moz-border-radius: 1.5rem;
             border-radius: 1.5rem;
-            padding-bottom: 20px;
             margin-bottom: 3rem;
             text-align: center;
             color: #ff5834;
@@ -210,8 +287,7 @@ function BlogDetailContent() {
           width: 200%;
           height: 200%;
           background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-          animation: float 20s ease-in-out infinite;
-          z-index: 1;
+           z-index: 1;
         }
         @keyframes float {
           0%, 100% { transform: translate(0, 0) rotate(0deg); }
@@ -219,10 +295,7 @@ function BlogDetailContent() {
           66% { transform: translate(-20px, 20px) rotate(240deg); }
         }
         
-       
-          .hero{
-          margin-bottom:20px;
-          }
+        
         .hero-title{
         font-family: Inter;
         font-weight: 700;
@@ -235,7 +308,7 @@ function BlogDetailContent() {
         } 
         .img-fluid{
           width: 100%;
-          height: 375px;
+          height: 450px;
           object-fit: cover;
         }
         .section-card {
@@ -300,6 +373,8 @@ function BlogDetailContent() {
           vertical-align: middle;
           color: #D94B23;
           margin-bottom:10px;
+          word-spacing: 1px;
+          letter-spacing: 0.2px;
         }
         .section-description {
           font-size: 1.125rem;
@@ -367,9 +442,10 @@ function BlogDetailContent() {
              list-style: none;
          } 
          .toc-list a{
-             color: #ff6b00;
+             color: #000000;
              text-decoration: none;
              font-weight: 500;
+             font-size:16px;
          }
          .toc-list a:hover{
              text-decoration: underline;
@@ -395,6 +471,21 @@ function BlogDetailContent() {
             .share-icons{
             display:flex;
             gap:10px;
+            }
+            .share-icon {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 40px;
+              height: 40px;
+              border: 2px solid #e5e7eb;
+              border-radius: 50%;
+              text-decoration: none;
+              transition: all 0.2s ease;
+            }
+            .share-icon:hover {
+              border-color: #3b82f6;
+              transform: scale(1.1);
             }
        .author-content {
         width: 390px;
@@ -651,6 +742,13 @@ function BlogDetailContent() {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
+          .tcerp_indicaa_new{
+          position: fixed; 
+          }
+          .fixedbar{
+              position: sticky;
+              top: 100px;
+          }
         @media (max-width: 768px) {
          
           .blog-hero {
@@ -686,6 +784,91 @@ function BlogDetailContent() {
           .img-fluid{ 
             height: auto; 
           }
+            .author-content {
+        width: 390px;
+         }
+        }
+        .link-manager-section {
+          background: white;
+          border-radius: 1rem;
+          padding: 1.5rem;
+          border: 1px solid rgba(226, 232, 240, 0.5);
+          margin-bottom: 1.5rem;
+        }
+        .link-manager-title {
+          font-size: 1rem;
+          font-weight: 600;
+          color: #1e293b;
+          margin-bottom: 1rem;
+        }
+        .link-list {
+          max-height: 300px;
+          overflow-y: auto;
+          margin-bottom: 1rem;
+        }
+        .link-item {
+          background: #f8fafc;
+          border: 1px solid #e5e7eb;
+          border-radius: 0.5rem;
+          padding: 0.75rem;
+          margin-bottom: 0.5rem;
+        }
+        .link-info {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+          margin-bottom: 0.5rem;
+        }
+        .link-word {
+          font-weight: 600;
+          color: #1e293b;
+          font-size: 0.875rem;
+        }
+        .link-url {
+          color: #64748b;
+          font-size: 0.75rem;
+          word-break: break-all;
+        }
+        .link-actions {
+          display: flex;
+          gap: 0.5rem;
+        }
+        .link-edit-btn, .link-remove-btn {
+          padding: 0.25rem 0.5rem;
+          border: none;
+          border-radius: 0.25rem;
+          font-size: 0.75rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .link-edit-btn {
+          background: #3b82f6;
+          color: white;
+        }
+        .link-edit-btn:hover {
+          background: #2563eb;
+        }
+        .link-remove-btn {
+          background: #ef4444;
+          color: white;
+        }
+        .link-remove-btn:hover {
+          background: #dc2626;
+        }
+        .add-link-btn {
+          width: 100%;
+          padding: 0.75rem;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+          border: none;
+          border-radius: 0.5rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .add-link-btn:hover {
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          transform: translateY(-1px);
         }
       `}</style>
       <div className='container'>
@@ -700,7 +883,7 @@ function BlogDetailContent() {
               <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)' }}></div>
             )}
             <div className="hero-overlay"></div>
-            <h1 className="hero-title">{blog.title}</h1>
+            {/* <h1 className="hero-title">{blog.title}</h1> */}
           </div>
 
           {/* Main Heading + Intro */}
@@ -710,9 +893,7 @@ function BlogDetailContent() {
               <div key={sectionKey} className="content-section" id={`content-section-${sectionKey}`}>
                 <h2 className="section-title">{section.title}</h2>
                 {section.description && Object.keys(section.description).map((descKey) => (
-                  <p key={descKey} className="section-description">
-                    {section.description[descKey]}
-                  </p>
+                  <p key={descKey} className="section-description" dangerouslySetInnerHTML={{ __html: applyAnchorTags(section.description[descKey], blog.anchorTags) }}></p>
                 ))}
               </div>
             );
@@ -722,13 +903,17 @@ function BlogDetailContent() {
           {blog.contentSection2 && blog.contentSection2['1'] && (
             <div className="content-section" id="content-section2-1">
               <h2 className="section-title content-sectiontwo">{blog.contentSection2['1'].title}</h2>
-              <p className="section-description">{blog.contentSection2['1'].shortDescription}</p>
+              <p className="section-description" dangerouslySetInnerHTML={{ 
+                    __html: applyAnchorTags(blog.contentSection2['1'].shortDescription, blog.anchorTags) 
+                  }}></p>
               {blog.contentSection2['1'].description && Object.keys(blog.contentSection2['1'].description).map((itemKey) => {
                 const item = blog.contentSection2['1'].description[itemKey];
                 return (
                   <div key={itemKey} className="challenge-block">
                     <h3 className="block-heading">{item.heading}</h3>
-                    <p className="block-text">{item.text}</p>
+                    <p className="block-text" dangerouslySetInnerHTML={{ 
+                    __html: applyAnchorTags(item.text, blog.anchorTags) 
+                  }}></p>
                   </div>
                 );
               })}
@@ -739,13 +924,17 @@ function BlogDetailContent() {
           {blog.contentSection2 && blog.contentSection2['2'] && (
             <div className="content-section" id="content-section2-2">
               <h2 className="section-title content-sectiontwo">{blog.contentSection2['2'].title}</h2>
-              <p className="section-description">{blog.contentSection2['2'].shortDescription}</p>
+              <p className="section-description" dangerouslySetInnerHTML={{ 
+                    __html: applyAnchorTags(blog.contentSection2['2'].shortDescription, blog.anchorTags) 
+                  }}></p>
               {blog.contentSection2['2'].description && Object.keys(blog.contentSection2['2'].description).map((itemKey) => {
                 const item = blog.contentSection2['2'].description[itemKey];
                 return (
                   <div key={itemKey} className="transform-block">
                     <h3 className="block-heading">{item.heading}</h3>
-                    <p className="block-text">{item.text}</p>
+                    <p className="block-text" dangerouslySetInnerHTML={{ 
+                    __html: applyAnchorTags(item.text, blog.anchorTags) 
+                  }}></p>
                   </div>
                 );
               })}
@@ -756,13 +945,17 @@ function BlogDetailContent() {
           {blog.contentSection2 && blog.contentSection2['3'] && (
             <div className="content-section" id="content-section2-3">
               <h2 className="section-title">{blog.contentSection2['3'].title}</h2>
-              <p className="section-description">{blog.contentSection2['3'].shortDescription}</p>
+              <p className="section-description" dangerouslySetInnerHTML={{ 
+                    __html: applyAnchorTags(blog.contentSection2['3'].shortDescription, blog.anchorTags) 
+                  }}></p>
               {blog.contentSection2['3'].description && Object.keys(blog.contentSection2['3'].description).map((itemKey) => {
                 const item = blog.contentSection2['3'].description[itemKey];
                 return (
                   <div key={itemKey} className="benefit-block">
                     <h3 className="block-heading">{item.heading}</h3>
-                    <p className="block-text">{item.text}</p>
+                    <p className="block-text" dangerouslySetInnerHTML={{ 
+                    __html: applyAnchorTags(item.text, blog.anchorTags) 
+                  }}></p>
                   </div>
                 );
               })}
@@ -773,7 +966,9 @@ function BlogDetailContent() {
           {blog.Conclusion && (
             <div className="conclusion" id="conclusion">
               <h3 className='section-title'>Conclusion</h3>
-              <p>{blog.Conclusion}</p>
+              <p dangerouslySetInnerHTML={{ 
+                    __html: applyAnchorTags(blog.Conclusion, blog.anchorTags) 
+                  }}></p>
             </div>
           )}
 
@@ -792,9 +987,9 @@ function BlogDetailContent() {
                       {faq.question}
                      
                     </div>
-                    <div className="faq-answer">
-                      {faq.answer}
-                    </div>
+                    <div className="faq-answer" dangerouslySetInnerHTML={{ 
+                    __html: applyAnchorTags(faq.answer, blog.anchorTags) 
+                  }}></div>
                   </div>
                 );
               })}
@@ -804,6 +999,7 @@ function BlogDetailContent() {
 
         {/* Right Column - Sidebar */}
         <div className="sidebar col-md-4">
+           <div className="fixedbar">
           {/* Table of Contents */}
           <div className="toc-card">
             <h3 className="toc-title">Table of Contents</h3>
@@ -858,49 +1054,52 @@ function BlogDetailContent() {
 
           {/* Share Icons */}
           <div className="share-section">
-            <h3 className="share-title">Share this post</h3>
+            <h3 className="share-title">Follow Us</h3>
             <div className="share-icons">
               <a 
-                href={`https://www.facebook.com/sharer/sharer.php?u=${typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : ''}`}
+                href="https://www.facebook.com/TechCloudERPSoftwareSolutions"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="share-icon"
               >
                 <Image
                   src={facebook}
-                  alt="Share on Facebook"
-                  width={24}
-                  height={24}
+                  alt="Follow on Facebook"
+                  width={8}
+                  height={8}
                 />
               </a>
               <a 
-                href={`https://www.linkedin.com/sharing/share-offsite/?url=${typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : ''}`}
+                href="https://www.linkedin.com/company/tech-cloud-erp/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="share-icon"
               >
                 <Image
                   src={linkedin}
-                  alt="Share on LinkedIn"
-                  width={24}
-                  height={24}
+                  alt="Follow on LinkedIn"
+                  width={12}
+                  height={12}
                 />
               </a>
-               
               <a 
-                href={`https://twitter.com/intent/tweet?text=${blog.title ? encodeURIComponent(blog.title) : encodeURIComponent('Check out this blog post')}&url=${typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : ''}`}
+                href="https://x.com/TechCloudERP"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="share-icon"
               >
                 <Image
                   src={twitter}
-                  alt="Share on Twitter"
-                  width={24}
-                  height={24}
+                  alt="Follow on X"
+                  width={12}
+                  height={12}
                 />
               </a>
             </div>
+          </div>
+
+          {/* Dynamic Link Manager */}
+          
           </div>
         </div>
       </div>

@@ -90,7 +90,7 @@
 //               <div style={{ padding: '1.5rem' }}>
 //                 <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.75rem', color: '#1f2937' }}>
 //                 <Link 
-//                   href={`/blogs2/blog-detail?slug=${blog.slug}`} 
+//                   href={`/blogs/blog-detail?slug=${blog.slug}`} 
 //                   style={{ color: '#1f2937', textDecoration: 'none' }}
 //                 >
 //                   {blog.title}
@@ -109,7 +109,7 @@
 //                     }
 //                   </span>
 //                  <Link 
-//                     href={`/blogs2/blog-detail?slug=${blog.slug}`} 
+//                     href={`/blogs/blog-detail?slug=${blog.slug}`} 
 //                     style={{
 //                       backgroundColor: '#2563eb',
 //                       color: 'white',
@@ -122,8 +122,8 @@
 //                       e.preventDefault();
 //                       console.log("Clicked blog:", blog);
 //                       console.log("Blog slug:", blog.slug);
-//                       console.log("Generated URL:", `/blogs2/blog-detail?slug=${blog.slug}`);
-//                       window.location.href = `/blogs2/blog-detail?slug=${blog.slug}`;
+//                       console.log("Generated URL:", `/blogs/blog-detail?slug=${blog.slug}`);
+//                       window.location.href = `/blogs/blog-detail?slug=${blog.slug}`;
 //                     }}
 //                   >
 //                     Read More
@@ -475,7 +475,7 @@ export default function Home() {
                 </div>
                 <div className="blog-read-more">
                   <Link 
-                    href={`/blogs2/blog-detail?slug=${blog.slug}`}
+                    href={`/blogs/blog-detail?slug=${blog.slug}`}
                     style={{ 
                       textDecoration: 'none', 
                       color: '#3b82f6',

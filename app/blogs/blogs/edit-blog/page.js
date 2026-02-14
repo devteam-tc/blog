@@ -1,18 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { useState, useEffect, Suspense } from "react";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { blogDb } from "../../../../firebaseConfig";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import Headers from "../../../../components/layout/header/Header";
+import Header from "../../../../components/layout/header/Header";
 import PageHeader from "../../../../components/layout/PageHeader";
 import Footer from "../../../../components/layout/footer/Footer";
 import CustomCursor from "../../../../components/layout/CustomCursor";
+import { FaHome } from 'react-icons/fa';
 
-export default function CreateBlog() {
+function EditBlogContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const blogId = searchParams.get('id');
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -28,16 +34,156 @@ export default function CreateBlog() {
   const [faqTitle, setFaqTitle] = useState("");
   const [faqDescription, setFaqDescription] = useState("");
   const [faqs, setFaqs] = useState({});
+  const [anchorTags, setAnchorTags] = useState({});
+
+  const breadcrumbs = [
+    { label: 'Home', link: '/', icon: FaHome },
+    { label: 'Blogs', link: '/blogs' },
+    { label: 'Blog List', link: '/blogs/blogs/blog-list' },
+    { label: 'Edit Blog', link: null }
+  ];
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchBlog = async () => {
+      if (!blogId) {
+        if (isMounted) {
+          setError("Blog ID not provided");
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const docRef = doc(blogDb, "blog", blogId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const blogData = docSnap.data();
+          if (isMounted) {
+            setTitle(blogData.title || "");
+            setSlug(blogData.slug || "");
+            setBrocherText(blogData.brocher?.text || "");
+            setBrocherImage(blogData.brocher?.imageUrl || "");
+            setConclusion(blogData.Conclusion || "");
+            setContentSection(blogData.contentSection || {});
+            setContentSection2(blogData.contentSection2 || {});
+            setFaqTitle(blogData.faqSection?.title || "");
+            setFaqDescription(blogData.faqSection?.description || "");
+            setFaqs(blogData.faqSection?.faqs || {});
+            setAnchorTags(blogData.anchorTags || {});
+            setError(null);
+          }
+        } else {
+          if (isMounted) {
+            setError("Blog not found");
+          }
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error("Error fetching blog:", error);
+          setError("Failed to load blog data");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchBlog();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [blogId]);
 
   const createSlug = (text) =>
     text.toLowerCase().trim().replace(/\s+/g, "-");
 
+  // Function to add anchor tag
+  const addAnchorTag = (key, word, url) => {
+    setAnchorTags(prev => ({
+      ...prev,
+      [key]: { word, url }
+    }));
+  };
+
+  // Function to remove anchor tag
+  const removeAnchorTag = (key) => {
+    setAnchorTags(prev => {
+      const newTags = { ...prev };
+      delete newTags[key];
+      return newTags;
+    });
+  };
+
+  // Function to apply anchor tags to text
+  const applyAnchorTags = (text, sectionKey, itemKey) => {
+    const tagKey = `${sectionKey}-${itemKey}`;
+    const anchorTag = anchorTags[tagKey];
+    
+    if (!anchorTag || !text) return text;
+    
+    const { word, url } = anchorTag;
+    const regex = new RegExp(`\\b${word}\\b`, 'gi');
+    return text.replace(regex, `<a href="${url}" target="_blank" style="color: #3b82f6; text-decoration: underline; font-weight: 500;">${word}</a>`);
+  };
+
+  // Function to process all content and apply anchor tags
+  const processContentWithAnchorTags = (contentSection2) => {
+    const processedContent = { ...contentSection2 };
+    
+    Object.keys(processedContent).forEach(sectionKey => {
+      // Apply anchor tags to short description
+      if (processedContent[sectionKey].shortDescription) {
+        const shortDescTagKey = `${sectionKey}-shortDesc`;
+        const shortDescAnchorTag = anchorTags[shortDescTagKey];
+        if (shortDescAnchorTag) {
+          const { word, url } = shortDescAnchorTag;
+          const regex = new RegExp(`\\b${word}\\b`, 'gi');
+          processedContent[sectionKey].shortDescription = processedContent[sectionKey].shortDescription.replace(
+            regex, 
+            `<a href="${url}" target="_blank" style="color: #3b82f6; text-decoration: underline; font-weight: 500;">${word}</a>`
+          );
+        }
+      }
+      
+      // Apply anchor tags to item descriptions
+      if (processedContent[sectionKey].description) {
+        Object.keys(processedContent[sectionKey].description).forEach(itemKey => {
+          const itemTagKey = `${sectionKey}-${itemKey}`;
+          const itemAnchorTag = anchorTags[itemTagKey];
+          if (itemAnchorTag && processedContent[sectionKey].description[itemKey].text) {
+            const { word, url } = itemAnchorTag;
+            const regex = new RegExp(`\\b${word}\\b`, 'gi');
+            processedContent[sectionKey].description[itemKey].text = processedContent[sectionKey].description[itemKey].text.replace(
+              regex,
+              `<a href="${url}" target="_blank" style="color: #3b82f6; text-decoration: underline; font-weight: 500;">${word}</a>`
+            );
+          }
+        });
+      }
+    });
+    
+    return processedContent;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!blogId) return;
+
     setIsSubmitting(true);
+    setError(null);
 
     try {
-      const blogData = {
+      const blogRef = doc(blogDb, "blog", blogId);
+      
+      // Process content with anchor tags applied
+      const processedContentSection2 = processContentWithAnchorTags(contentSection2);
+      
+      await updateDoc(blogRef, {
         title,
         slug: slug || createSlug(title),
         brocher: {
@@ -46,58 +192,136 @@ export default function CreateBlog() {
         },
         Conclusion,
         contentSection,
-        contentSection2,
+        contentSection2: processedContentSection2,
         faqSection: {
           title: faqTitle,
           description: faqDescription,
           faqs,
         },
-        createdAt: serverTimestamp(),
-      };
+        anchorTags,
+        updatedAt: new Date(),
+      });
 
-      await addDoc(collection(blogDb, "blog"), blogData);
-
-      router.push("/blogs2/blogs/blog-list");
+      router.push("/blogs/blogs/blog-list");
     } catch (error) {
-      console.error("Error creating blog:", error);
+      console.error("Error updating blog:", error);
+      setError("Failed to update blog. Please try again.");
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <div>
-      <Headers />
-      <PageHeader />
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1rem' }}>
-        <Link
-          href="/blogs2/blogs/blog-list"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            color: '#ff6b00',
-            textDecoration: 'none',
-            marginBottom: '2rem',
-            fontWeight: '600'
-          }}
-        >
-          ← Back to Blogs
-        </Link>
-
-        <div style={{ backgroundColor: 'white', borderRadius: '1rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
-          {/* Header */}
-          <div style={{ backgroundColor: 'linear-gradient(135deg, #ff6b00 0%, #ff8c42 100%)', padding: '3rem 2rem', textAlign: 'center' }}>
-            <h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'white', marginBottom: '0.5rem' }}>
-              Create New Blog Post
-            </h1>
-            <p style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '1.1rem' }}>
-              Share your insights with the world
-            </p>
+  if (loading) {
+    return (
+      <>
+        <Header/>
+        <PageHeader title="Edit Blog" breadcrumbs={breadcrumbs}/>
+        <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ 
+              width: '40px', 
+              height: '40px', 
+              border: '4px solid #f3f3f3', 
+              borderTop: '4px solid #2563eb', 
+              borderRadius: '50%', 
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 1rem'
+            }}></div>
+            <p>Loading blog data...</p>
           </div>
+        </div>
+        <Footer/>
+        <CustomCursor/>
+      </>
+    );
+  }
 
-          {/* Form Container */}
-          <div style={{ padding: '3rem 2rem' }}>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
-              
+  if (error) {
+    return (
+      <>
+        <Header/>
+        <PageHeader title="Edit Blog" breadcrumbs={breadcrumbs}/>
+        <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center', maxWidth: '500px' }}>
+            <div style={{ 
+              backgroundColor: '#fef2f2', 
+              border: '1px solid #fecaca', 
+              borderRadius: '0.5rem', 
+              padding: '2rem',
+              marginBottom: '2rem'
+            }}>
+              <h3 style={{ color: '#dc2626', marginBottom: '1rem' }}>Error</h3>
+              <p style={{ color: '#7f1d1d', marginBottom: '1.5rem' }}>{error}</p>
+              <Link
+                href="/blogs/blogs/blog-list"
+                style={{
+                  backgroundColor: '#2563eb',
+                  color: 'white',
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '0.375rem',
+                  textDecoration: 'none',
+                  fontWeight: '600',
+                  display: 'inline-block'
+                }}
+              >
+                ← Back to Blog List
+              </Link>
+            </div>
+          </div>
+        </div>
+        <Footer/>
+        <CustomCursor/>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Header/>
+      <PageHeader title="Edit Blog" breadcrumbs={breadcrumbs}/>
+      
+      <div style={{ minHeight: '60vh', backgroundColor: '#f9fafb', padding: '2rem' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <Link
+            href="/blogs/blogs/blog-list"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              color: '#2563eb',
+              textDecoration: 'none',
+              marginBottom: '2rem',
+              fontWeight: '500'
+            }}
+          >
+            ← Back to Blog List
+          </Link>
+
+          <div style={{ 
+            backgroundColor: 'white', 
+            borderRadius: '0.5rem', 
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', 
+            padding: '2rem' 
+          }}>
+            <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '2rem', color: '#1f2937' }}>
+              Edit Blog Post
+            </h1>
+
+            {error && (
+              <div style={{
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '0.375rem',
+                padding: '1rem',
+                marginBottom: '1.5rem',
+                color: '#dc2626'
+              }}>
+                {error}
+              </div>
+            )}
+
+            <form
+              onSubmit={handleSubmit}
+              style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
+            >
               {/* Basic Information Section */}
               <div style={{ backgroundColor: '#f8fafc', borderRadius: '1rem', padding: '2rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
                 <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -156,7 +380,7 @@ export default function CreateBlog() {
                       onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                     />
                     <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                      Auto-generated from title. Used in the URL.
+                      Auto-generated from title. Used in URL.
                     </p>
                   </div>
                 </div>
@@ -175,7 +399,7 @@ export default function CreateBlog() {
                       Brochure Text
                     </label>
                     <textarea
-                      placeholder="A compelling summary that highlights the key points of your blog post"
+                      placeholder="A compelling summary that highlights key points of your blog post"
                       value={brocherText}
                       onChange={(e) => setBrocherText(e.target.value)}
                       rows={3}
@@ -514,6 +738,83 @@ export default function CreateBlog() {
                           onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                         />
                       </div>
+
+
+                            {/* Anchor Tag Management for Short Description */}
+                      <div style={{ marginTop: '0.5rem', padding: '0.75rem', backgroundColor: '#f0f9ff', borderRadius: '0.375rem', border: '1px solid #e0e7ff' }}>
+                        <div style={{ fontWeight: '500', color: '#1e40af', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+                          Add Anchor Tag:
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                <div>
+                                  <input
+                                    type="text"
+                                    name={`anchor-word-${sectionKey}-shortDesc`}
+                                    id={`anchor-word-${sectionKey}-shortDesc`}
+                                    placeholder="Word to link (e.g., apple)"
+                                    value={anchorTags[`${sectionKey}-shortDesc`]?.word || ''}
+                                    onChange={(e) => addAnchorTag(`${sectionKey}-shortDesc`, e.target.value, anchorTags[`${sectionKey}-shortDesc`]?.url || '')}
+                                    style={{
+                                      width: '100%',
+                                      padding: '0.5rem',
+                                      border: '1px solid #d1d5db',
+                                      borderRadius: '0.25rem',
+                                      fontSize: '0.875rem'
+                                    }}
+                                  />
+                                </div>
+                                <div>
+                                  <input
+                                    type="url"
+                                    name={`anchor-url-${sectionKey}-shortDesc`}
+                                    id={`anchor-url-${sectionKey}-shortDesc`}
+                                    placeholder="URL (e.g., https://example.com)"
+                                    value={anchorTags[`${sectionKey}-shortDesc`]?.url || ''}
+                                    onChange={(e) => addAnchorTag(`${sectionKey}-shortDesc`, anchorTags[`${sectionKey}-shortDesc`]?.word || '', e.target.value)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '0.5rem',
+                                      border: '1px solid #d1d5db',
+                                      borderRadius: '0.25rem',
+                                      fontSize: '0.875rem'
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                              
+                              {anchorTags[`${sectionKey}-shortDesc`] && (
+                                <div style={{
+                                  display: 'flex', 
+                                  justifyContent: 'space-between', 
+                                  alignItems: 'center', 
+                                  padding: '0.5rem', 
+                                  backgroundColor: '#fef3c7', 
+                                  borderRadius: '0.25rem'
+                                }}>
+                                  <span style={{ fontSize: '0.75rem', color: '#059669' }}>
+                                    "{anchorTags[`${sectionKey}-shortDesc`].word}" will link to "{anchorTags[`${sectionKey}-shortDesc`].url}"
+                                  </span>
+                                  <button
+                                    onClick={() => removeAnchorTag(`${sectionKey}-shortDesc`)}
+                                    style={{
+                                      padding: '0.25rem 0.5rem',
+                                      backgroundColor: '#dc2626',
+                                      color: 'white',
+                                      border: 'none',
+                                      borderRadius: '0.25rem',
+                                      fontSize: '0.75rem',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+
+
+
                       
                       <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#374151', fontSize: '0.875rem' }}>
@@ -688,42 +989,10 @@ export default function CreateBlog() {
                 ))}
               </div>
 
-              {/* Conclusion Section */}
-              <div style={{ backgroundColor: '#f8fafc', borderRadius: '0.75rem', padding: '1.5rem', border: '1px solid #e2e8f0' }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1e293b', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ width: '8px', height: '8px', backgroundColor: '#f59e0b', borderRadius: '50%' }}></span>
-                  Conclusion
-                </h2>
-                
-                <div>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#374151', fontSize: '0.875rem' }}>
-                    Conclusion Text
-                  </label>
-                  <textarea
-                    placeholder="Summarize the key takeaways and final thoughts of your blog post"
-                    value={Conclusion}
-                    onChange={(e) => setConclusion(e.target.value)}
-                    rows={4}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem 1rem',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '0.5rem',
-                      fontSize: '1rem',
-                      transition: 'all 0.2s ease',
-                      backgroundColor: 'white',
-                      resize: 'vertical'
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                    onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                  />
-                </div>
-              </div>
-
               {/* FAQ Section */}
               <div style={{ backgroundColor: '#f8fafc', borderRadius: '0.75rem', padding: '1.5rem', border: '1px solid #e2e8f0' }}>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1e293b', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ width: '8px', height: '8px', backgroundColor: '#06b6d4', borderRadius: '50%' }}></span>
+                  <span style={{ width: '8px', height: '8px', backgroundColor: '#f59e0b', borderRadius: '50%' }}></span>
                   FAQ Section
                 </h2>
                 
@@ -734,7 +1003,7 @@ export default function CreateBlog() {
                     </label>
                     <input
                       type="text"
-                      placeholder="FAQ Title"
+                      placeholder="Frequently Asked Questions"
                       value={faqTitle}
                       onChange={(e) => setFaqTitle(e.target.value)}
                       style={{
@@ -750,13 +1019,13 @@ export default function CreateBlog() {
                       onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                     />
                   </div>
-                  
+
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#374151', fontSize: '0.875rem' }}>
                       FAQ Description
                     </label>
                     <textarea
-                      placeholder="FAQ Description"
+                      placeholder="Find answers to common questions about this topic"
                       value={faqDescription}
                       onChange={(e) => setFaqDescription(e.target.value)}
                       rows={3}
@@ -900,37 +1169,143 @@ export default function CreateBlog() {
                 </div>
               </div>
 
-              {/* Submit Button */}
-              <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '1rem' }}>
+              {/* Conclusion Section */}
+              <div style={{ backgroundColor: '#f8fafc', borderRadius: '0.75rem', padding: '1.5rem', border: '1px solid #e2e8f0' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1e293b', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ width: '8px', height: '8px', backgroundColor: '#06b6d4', borderRadius: '50%' }}></span>
+                  Conclusion
+                </h2>
+                
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#374151', fontSize: '0.875rem' }}>
+                    Conclusion Text
+                  </label>
+                  <textarea
+                    placeholder="Summarize the key takeaways and final thoughts"
+                    value={Conclusion}
+                    onChange={(e) => setConclusion(e.target.value)}
+                    rows={4}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem 1rem',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '0.5rem',
+                      fontSize: '1rem',
+                      transition: 'all 0.2s ease',
+                      backgroundColor: 'white',
+                      resize: 'vertical'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                  />
+                </div>
+              </div>
+
+              {/* Form Actions */}
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem' }}>
+                <Link
+                  href="/blogs/blogs/blog-list"
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '0.5rem',
+                    fontSize: '1rem',
+                    fontWeight: '500',
+                    color: '#6b7280',
+                    backgroundColor: 'white',
+                    cursor: 'pointer',
+                    textDecoration: 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.backgroundColor = '#f9fafb';
+                    e.target.style.borderColor = '#d1d5db';
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.backgroundColor = 'white';
+                    e.target.style.borderColor = '#e5e7eb';
+                  }}
+                >
+                  Cancel
+                </Link>
+                
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   style={{
-                    backgroundColor: '#2563eb',
-                    color: 'white',
-                    padding: '1rem 2rem',
-                    borderRadius: '0.5rem',
-                    fontWeight: '600',
-                    fontSize: '1rem',
+                    padding: '0.75rem 2rem',
                     border: 'none',
+                    borderRadius: '0.5rem',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    color: 'white',
+                    backgroundColor: isSubmitting ? '#9ca3af' : '#3b82f6',
                     cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                    opacity: isSubmitting ? 0.5 : 1,
                     transition: 'all 0.2s ease',
-                    minWidth: '200px'
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
                   }}
-                  onMouseOver={(e) => !isSubmitting && (e.target.style.backgroundColor = '#1d4ed8')}
-                  onMouseOut={(e) => !isSubmitting && (e.target.style.backgroundColor = '#2563eb')}
+                  onMouseOver={(e) => {
+                    if (!isSubmitting) {
+                      e.target.style.backgroundColor = '#2563eb';
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (!isSubmitting) {
+                      e.target.style.backgroundColor = '#3b82f6';
+                    }
+                  }}
                 >
-                  {isSubmitting ? "Creating..." : "Create Blog Post"}
+                  {isSubmitting && (
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid #ffffff',
+                      borderTop: '2px solid transparent',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }}></div>
+                  )}
+                  {isSubmitting ? 'Updating Blog...' : 'Update Blog'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       </div>
-      
-      <Footer />
-      <CustomCursor />
-    </div>
+
+      <Footer/>
+      <CustomCursor/>
+    </>
+  );
+}
+
+export default function EditBlog() {
+  return (
+    <Suspense fallback={
+      <>
+        <Header/>
+        <PageHeader title="Edit Blog" breadcrumbs={[]}/>
+        <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ 
+              width: '40px', 
+              height: '40px', 
+              border: '4px solid #f3f3f3', 
+              borderTop: '4px solid #2563eb', 
+              borderRadius: '50%', 
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 1rem'
+            }}></div>
+            <p>Loading...</p>
+          </div>
+        </div>
+        <Footer/>
+        <CustomCursor/>
+      </>
+    }>
+      <EditBlogContent />
+    </Suspense>
   );
 }

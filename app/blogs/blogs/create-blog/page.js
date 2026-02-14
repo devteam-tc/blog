@@ -117,7 +117,7 @@ export default function CreateBlog() {
 
   const breadcrumbs = [
     { label: 'Home', link: '/', icon: FaHome },
-    { label: 'Blogs', link: '/blogs2' },
+    { label: 'Blogs', link: '/blogs' },
     { label: 'Create Blog', link: null }
   ];
 
